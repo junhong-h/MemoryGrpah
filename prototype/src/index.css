@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+:root {
+  --bg-base: #f5ede2;
+  --bg-surface: #fff8ef;
+  --bg-elevated: #fffdf8;
+  --bg-subtle: #efe2d2;
+
+  --border: #dac8b6;
+  --border-strong: #c9b099;
+
+  --text-primary: #3c2a1e;
+  --text-secondary: #705846;
+  --text-muted: #a08973;
+
+  --canvas-bg: #f3eadf;
+  --canvas-grid: #e3d5c7;
+  --edge-time: #c4b19d;
+  --edge-semantic: #c48a4b;
+
+  --amber: #bf803a;
+  --amber-light: #f6e4cd;
+
+  --travel-accent: #6c9dbb;
+  --travel-soft: rgba(108, 157, 187, 0.14);
+  --social-accent: #9e74c7;
+  --social-soft: rgba(158, 116, 199, 0.14);
+  --milestone-accent: #c78541;
+  --milestone-soft: rgba(199, 133, 65, 0.16);
+  --daily-accent: #699978;
+  --daily-soft: rgba(105, 153, 120, 0.15);
+
+  --shadow-soft: 0 20px 40px rgba(94, 69, 45, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--canvas-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+textarea,
+input {
+  font: inherit;
+}
+
+textarea::placeholder {
+  color: #b39c88;
+}
+
+@keyframes nodeEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.memory-photo-node {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(220, 207, 192, 0.78);
+  border-radius: 26px;
+  background: rgba(255, 248, 239, 0.78);
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 18px 34px rgba(94, 69, 45, 0.09);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
+  animation: nodeEnter 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.memory-photo-node__drag {
+  cursor: grab;
+  touch-action: none;
+}
+
+.memory-photo-node__drag:active {
+  cursor: grabbing;
+}
+
+.memory-photo-node:hover {
+  transform: translateY(-5px) scale(1.025);
+  border-color: var(--border-strong);
+  box-shadow: 0 24px 40px rgba(94, 69, 45, 0.14);
+}
+
+.memory-photo-node.is-active {
+  box-shadow:
+    0 24px 42px rgba(191, 128, 58, 0.14),
+    0 0 0 1px rgba(191, 128, 58, 0.18);
+}
+
+.memory-photo-node.is-recorded {
+  opacity: 0.96;
+}
+
+.memory-photo-grain {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 14px 14px;
+  mix-blend-mode: soft-light;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.react-flow__pane {
+  cursor: grab;
+}
+
+.react-flow__pane:active {
+  cursor: grabbing;
+}

@@ -1,0 +1,206 @@
+{
+  "events": [
+    {
+      "id": "evt_001",
+      "title": "Hiking at Mt. Tianmen",
+      "dateStart": "2024-10-05",
+      "category": "travel",
+      "coverEmoji": "🏔",
+      "photos": [
+        { "id": "p001a", "url": "🌄", "caption": "Summit view at sunrise" },
+        { "id": "p001b", "url": "🥾", "caption": "Trail through pine forest" },
+        { "id": "p001c", "url": "🍃", "caption": "Mist in the valley" }
+      ],
+      "cues": [
+        { "id": "c001a", "text": "Who were you with on this trip?" },
+        { "id": "c001b", "text": "What surprised you most that day?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_004", "reason": "Outdoor adventure", "similarity": 0.87 },
+        { "eventId": "evt_007", "reason": "Trip with same group", "similarity": 0.72 }
+      ],
+      "revisited": false
+    },
+    {
+      "id": "evt_002",
+      "title": "Roommate's Birthday Dinner",
+      "dateStart": "2024-11-18",
+      "category": "social",
+      "coverEmoji": "🎂",
+      "photos": [
+        { "id": "p002a", "url": "🎉", "caption": "Blowing out candles" },
+        { "id": "p002b", "url": "🍜", "caption": "Hot pot spread" },
+        { "id": "p002c", "url": "🥂", "caption": "Toasting together" }
+      ],
+      "cues": [
+        { "id": "c002a", "text": "What did you give as a gift, and why?" },
+        { "id": "c002b", "text": "What moment made everyone laugh?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_005", "reason": "Same close friends", "similarity": 0.81 },
+        { "eventId": "evt_008", "reason": "Shared meal event", "similarity": 0.65 }
+      ],
+      "revisited": false
+    },
+    {
+      "id": "evt_003",
+      "title": "Graduation Ceremony",
+      "dateStart": "2024-06-20",
+      "category": "milestone",
+      "coverEmoji": "🎓",
+      "photos": [
+        { "id": "p003a", "url": "👨‍🎓", "caption": "Receiving diploma" },
+        { "id": "p003b", "url": "👨‍👩‍👧", "caption": "Family photo outside hall" },
+        { "id": "p003c", "url": "🌸", "caption": "Campus cherry blossoms" }
+      ],
+      "cues": [
+        { "id": "c003a", "text": "How did you feel in this moment?" },
+        { "id": "c003b", "text": "What were you most looking forward to next?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_009", "reason": "Major life transition", "similarity": 0.78 }
+      ],
+      "revisited": true
+    },
+    {
+      "id": "evt_004",
+      "title": "Camping at Qinghai Lake",
+      "dateStart": "2024-08-03",
+      "category": "travel",
+      "coverEmoji": "⛺",
+      "photos": [
+        { "id": "p004a", "url": "🌊", "caption": "Azure lake at dusk" },
+        { "id": "p004b", "url": "🌌", "caption": "Starry sky by the tent" },
+        { "id": "p004c", "url": "🚲", "caption": "Cycling along the shore" }
+      ],
+      "cues": [
+        { "id": "c004a", "text": "Describe the first moment you arrived at the lake." },
+        { "id": "c004b", "text": "What did you talk about around the campfire?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_001", "reason": "Outdoor adventure", "similarity": 0.87 },
+        { "eventId": "evt_007", "reason": "Long-distance road trip", "similarity": 0.69 }
+      ],
+      "revisited": false
+    },
+    {
+      "id": "evt_005",
+      "title": "New Year's Eve Party",
+      "dateStart": "2023-12-31",
+      "category": "social",
+      "coverEmoji": "🎆",
+      "photos": [
+        { "id": "p005a", "url": "🥳", "caption": "Countdown in the living room" },
+        { "id": "p005b", "url": "🎇", "caption": "Fireworks outside the window" },
+        { "id": "p005c", "url": "📸", "caption": "Group selfie at midnight" }
+      ],
+      "cues": [
+        { "id": "c005a", "text": "What were you hoping for in the new year?" },
+        { "id": "c005b", "text": "Who did you call or message right after midnight?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_002", "reason": "Same close friends", "similarity": 0.81 },
+        { "eventId": "evt_008", "reason": "Festive gathering", "similarity": 0.74 }
+      ],
+      "revisited": false
+    },
+    {
+      "id": "evt_006",
+      "title": "First Day at New Job",
+      "dateStart": "2024-07-01",
+      "category": "milestone",
+      "coverEmoji": "💼",
+      "photos": [
+        { "id": "p006a", "url": "🏢", "caption": "Office building entrance" },
+        { "id": "p006b", "url": "💻", "caption": "Setting up my workstation" },
+        { "id": "p006c", "url": "☕", "caption": "First coffee with the team" }
+      ],
+      "cues": [
+        { "id": "c006a", "text": "What were you nervous about walking in?" },
+        { "id": "c006b", "text": "What was your first impression of your colleagues?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_003", "reason": "Major life transition", "similarity": 0.76 },
+        { "eventId": "evt_009", "reason": "Starting fresh chapter", "similarity": 0.71 }
+      ],
+      "revisited": false
+    },
+    {
+      "id": "evt_007",
+      "title": "Road Trip to Yunnan",
+      "dateStart": "2024-02-10",
+      "dateEnd": "2024-02-16",
+      "category": "travel",
+      "coverEmoji": "🚗",
+      "photos": [
+        { "id": "p007a", "url": "🌈", "caption": "Rainbow over rice terraces" },
+        { "id": "p007b", "url": "🏯", "caption": "Ancient town at night" },
+        { "id": "p007c", "url": "🌺", "caption": "Flower market in Dali" }
+      ],
+      "cues": [
+        { "id": "c007a", "text": "What was the best meal you had on this trip?" },
+        { "id": "c007b", "text": "Was there a moment you wanted to freeze in time?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_001", "reason": "Trip with same group", "similarity": 0.72 },
+        { "eventId": "evt_004", "reason": "Long-distance road trip", "similarity": 0.69 }
+      ],
+      "revisited": false
+    },
+    {
+      "id": "evt_008",
+      "title": "Mid-Autumn Festival with Family",
+      "dateStart": "2024-09-17",
+      "category": "social",
+      "coverEmoji": "🌕",
+      "photos": [
+        { "id": "p008a", "url": "🥮", "caption": "Mooncakes on the table" },
+        { "id": "p008b", "url": "🏮", "caption": "Lanterns in the courtyard" },
+        { "id": "p008c", "url": "👨‍👩‍👦‍👦", "caption": "Whole family photo" }
+      ],
+      "cues": [
+        { "id": "c008a", "text": "What family stories came up over dinner?" },
+        { "id": "c008b", "text": "What did the full moon remind you of?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_002", "reason": "Shared meal event", "similarity": 0.65 },
+        { "eventId": "evt_005", "reason": "Festive gathering", "similarity": 0.74 }
+      ],
+      "revisited": false
+    },
+    {
+      "id": "evt_009",
+      "title": "Moving to Guangzhou",
+      "dateStart": "2024-06-28",
+      "category": "milestone",
+      "coverEmoji": "📦",
+      "photos": [
+        { "id": "p009a", "url": "🚛", "caption": "Loading the moving truck" },
+        { "id": "p009b", "url": "🗝", "caption": "Keys to the new apartment" },
+        { "id": "p009c", "url": "🌆", "caption": "City view from the window" }
+      ],
+      "cues": [
+        { "id": "c009a", "text": "What was the hardest thing to pack (or leave behind)?" },
+        { "id": "c009b", "text": "What did you imagine your new life would be like?" }
+      ],
+      "relatedEvents": [
+        { "eventId": "evt_003", "reason": "Major life transition", "similarity": 0.78 },
+        { "eventId": "evt_006", "reason": "Starting fresh chapter", "similarity": 0.71 }
+      ],
+      "revisited": true
+    }
+  ],
+  "graphEdges": [
+    { "id": "e_t1", "source": "evt_007", "target": "evt_004", "type": "time" },
+    { "id": "e_t2", "source": "evt_004", "target": "evt_001", "type": "time" },
+    { "id": "e_t3", "source": "evt_003", "target": "evt_006", "type": "time" },
+    { "id": "e_t4", "source": "evt_006", "target": "evt_009", "type": "time" },
+    { "id": "e_t5", "source": "evt_005", "target": "evt_002", "type": "time" },
+    { "id": "e_t6", "source": "evt_002", "target": "evt_008", "type": "time" },
+    { "id": "e_s1", "source": "evt_001", "target": "evt_004", "type": "semantic" },
+    { "id": "e_s2", "source": "evt_001", "target": "evt_007", "type": "semantic" },
+    { "id": "e_s3", "source": "evt_003", "target": "evt_009", "type": "semantic" },
+    { "id": "e_s4", "source": "evt_005", "target": "evt_008", "type": "semantic" },
+    { "id": "e_s5", "source": "evt_003", "target": "evt_006", "type": "semantic" }
+  ]
+}
