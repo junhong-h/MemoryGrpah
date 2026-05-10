@@ -5,18 +5,36 @@ interface PhotoCarouselProps {
   photos: Photo[]
 }
 
+type Mode = 'carousel' | 'grid'
+
+const STAGGER_MS = 520
+const RISE_INITIAL_DELAY = 300
+// auto-scroll fires part-way through each rise so the card slides into
+// center as it finishes settling
+const SCROLL_OFFSET_MS = 760
+// after the last photo has settled, return to the first one so the user
+// sees the full "sweep then rest at the start" play
+const RETURN_TO_FIRST_DELAY = 900
+
 export default function PhotoCarousel({ photos }: PhotoCarouselProps) {
+  const [mode, setMode] = useState<Mode>('carousel')
   const [index, setIndex] = useState(0)
   const [zoomed, setZoomed] = useState<Photo | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
 
-  const scrollTo = useCallback(
+  const scrollToIndex = useCallback(
     (next: number) => {
       const clamped = Math.max(0, Math.min(photos.length - 1, next))
       const target = itemRefs.current[clamped]
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+      const container = containerRef.current
+      if (target && container) {
+        const targetLeft =
+          target.offsetLeft + target.clientWidth / 2 - container.clientWidth / 2
+        container.scrollTo({
+          left: Math.max(0, targetLeft),
+          behavior: 'smooth',
+        })
       }
       setIndex(clamped)
     },
@@ -24,8 +42,44 @@ export default function PhotoCarousel({ photos }: PhotoCarouselProps) {
   )
 
   useEffect(() => {
+    if (mode !== 'carousel') return undefined
+
+    const timers: number[] = []
+
+    const scrollToItem = (i: number) => {
+      const target = itemRefs.current[i]
+      const container = containerRef.current
+      if (target && container) {
+        const targetLeft =
+          target.offsetLeft + target.clientWidth / 2 - container.clientWidth / 2
+        container.scrollTo({
+          left: Math.max(0, targetLeft),
+          behavior: 'smooth',
+        })
+      }
+      setIndex(i)
+    }
+
+    photos.forEach((_, i) => {
+      const delay = i * STAGGER_MS + RISE_INITIAL_DELAY + SCROLL_OFFSET_MS
+      timers.push(window.setTimeout(() => scrollToItem(i), delay))
+    })
+
+    // After the carousel reaches the last photo, gently sweep back to the
+    // first one so it rests at the beginning instead of trailing off.
+    const sweepBack = window.setTimeout(() => {
+      scrollToItem(0)
+    }, photos.length * STAGGER_MS + RISE_INITIAL_DELAY + SCROLL_OFFSET_MS + RETURN_TO_FIRST_DELAY)
+    timers.push(sweepBack)
+
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t))
+    }
+  }, [photos, mode])
+
+  useEffect(() => {
     const container = containerRef.current
-    if (!container) return undefined
+    if (!container || mode !== 'carousel') return undefined
 
     let raf = 0
     const handler = () => {
@@ -53,10 +107,10 @@ export default function PhotoCarousel({ photos }: PhotoCarouselProps) {
       cancelAnimationFrame(raf)
       container.removeEventListener('scroll', handler)
     }
-  }, [photos.length])
+  }, [photos.length, mode])
 
   useEffect(() => {
-    if (!zoomed) return
+    if (!zoomed) return undefined
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setZoomed(null)
     }
@@ -66,58 +120,72 @@ export default function PhotoCarousel({ photos }: PhotoCarouselProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div ref={containerRef} className="memory-carousel">
-        {photos.map((photo, i) => (
-          <button
-            key={photo.id}
-            ref={(el) => {
-              itemRefs.current[i] = el
-            }}
-            type="button"
-            onClick={() => setZoomed(photo)}
-            className="memory-carousel-item"
-            style={{ ['--rise-delay' as string]: `${i * 280 + 200}ms` }}
-          >
-            <div className="memory-carousel-item__frame">
-              <span className="memory-carousel-item__media">{photo.url}</span>
-            </div>
-            <p className="memory-carousel-item__caption">
-              {photo.caption || ' '}
-            </p>
-          </button>
-        ))}
-      </div>
-
-      <div className="memory-carousel-controls">
+      <div className="memory-carousel-toolbar">
+        <span className="memory-carousel-toolbar__count">
+          {mode === 'carousel'
+            ? `${index + 1} of ${photos.length}`
+            : `${photos.length} photos`}
+        </span>
         <button
           type="button"
-          className="memory-carousel-arrow"
-          onClick={() => scrollTo(index - 1)}
-          disabled={index === 0}
-          aria-label="Previous photo"
+          className="memory-carousel-toolbar__toggle"
+          onClick={() => setMode(mode === 'carousel' ? 'grid' : 'carousel')}
         >
-          ←
+          {mode === 'carousel' ? `See all ${photos.length} →` : '← Back to carousel'}
         </button>
+      </div>
 
-        <div className="memory-carousel-dots" aria-hidden>
-          {photos.map((p, i) => (
-            <span
-              key={p.id}
-              className={['memory-carousel-dot', i === index ? 'is-active' : ''].join(' ')}
-            />
+      {mode === 'carousel' ? (
+        <>
+          <div ref={containerRef} className="memory-carousel">
+            {photos.map((photo, i) => (
+              <button
+                key={photo.id}
+                ref={(el) => {
+                  itemRefs.current[i] = el
+                }}
+                type="button"
+                onClick={() => setZoomed(photo)}
+                className="memory-carousel-item"
+                style={{ ['--rise-delay' as string]: `${i * STAGGER_MS + RISE_INITIAL_DELAY}ms` }}
+              >
+                <div className="memory-carousel-item__frame">
+                  <span className="memory-carousel-item__media">{photo.url}</span>
+                </div>
+                <p className="memory-carousel-item__caption">
+                  {photo.caption || ' '}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          <div className="memory-carousel-dots-wrap" aria-hidden>
+            {photos.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                aria-label={`Go to photo ${i + 1}`}
+                className={['memory-carousel-dot-btn', i === index ? 'is-active' : ''].join(' ')}
+                onClick={() => scrollToIndex(i)}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="memory-photo-grid-all">
+          {photos.map((photo, i) => (
+            <button
+              key={photo.id}
+              type="button"
+              onClick={() => setZoomed(photo)}
+              className="memory-photo-grid-item"
+              style={{ animationDelay: `${i * 50}ms` }}
+            >
+              <span className="memory-photo-grid-item__media">{photo.url}</span>
+            </button>
           ))}
         </div>
-
-        <button
-          type="button"
-          className="memory-carousel-arrow"
-          onClick={() => scrollTo(index + 1)}
-          disabled={index === photos.length - 1}
-          aria-label="Next photo"
-        >
-          →
-        </button>
-      </div>
+      )}
 
       {zoomed ? <PhotoLightbox photo={zoomed} onClose={() => setZoomed(null)} /> : null}
     </div>
