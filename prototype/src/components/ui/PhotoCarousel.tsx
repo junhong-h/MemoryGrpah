@@ -7,14 +7,15 @@ interface PhotoCarouselProps {
 
 type Mode = 'carousel' | 'grid'
 
-const STAGGER_MS = 520
+const STAGGER_MS = 460
 const RISE_INITIAL_DELAY = 300
-// auto-scroll fires part-way through each rise so the card slides into
-// center as it finishes settling
-const SCROLL_OFFSET_MS = 760
-// after the last photo has settled, return to the first one so the user
-// sees the full "sweep then rest at the start" play
-const RETURN_TO_FIRST_DELAY = 900
+// auto-cruise: after the first photo starts rising, the carousel slides
+// from left to right at a constant speed. User wheel / touch / pointer
+// interrupts it. After reaching the right end, a soft return brings
+// the view back to the first photo.
+const CRUISE_START_DELAY = RISE_INITIAL_DELAY + 600
+const CRUISE_SPEED_PX_PER_SEC = 340
+const RETURN_HOLD_MS = 700
 
 export default function PhotoCarousel({ photos }: PhotoCarouselProps) {
   const [mode, setMode] = useState<Mode>('carousel')
@@ -43,37 +44,73 @@ export default function PhotoCarousel({ photos }: PhotoCarouselProps) {
 
   useEffect(() => {
     if (mode !== 'carousel') return undefined
+    const container = containerRef.current
+    if (!container) return undefined
 
+    let raf = 0
+    let stopped = false
     const timers: number[] = []
 
-    const scrollToItem = (i: number) => {
-      const target = itemRefs.current[i]
-      const container = containerRef.current
-      if (target && container) {
-        const targetLeft =
-          target.offsetLeft + target.clientWidth / 2 - container.clientWidth / 2
-        container.scrollTo({
-          left: Math.max(0, targetLeft),
-          behavior: 'smooth',
-        })
-      }
-      setIndex(i)
+    const updateIndexFromScroll = () => {
+      const items = itemRefs.current.filter((el): el is HTMLButtonElement => !!el)
+      if (items.length === 0) return
+      const center = container.scrollLeft + container.clientWidth / 2
+      let bestIdx = 0
+      let bestDist = Infinity
+      items.forEach((item, i) => {
+        const itemCenter = item.offsetLeft + item.clientWidth / 2
+        const d = Math.abs(itemCenter - center)
+        if (d < bestDist) {
+          bestDist = d
+          bestIdx = i
+        }
+      })
+      setIndex(bestIdx)
     }
 
-    photos.forEach((_, i) => {
-      const delay = i * STAGGER_MS + RISE_INITIAL_DELAY + SCROLL_OFFSET_MS
-      timers.push(window.setTimeout(() => scrollToItem(i), delay))
-    })
+    const cruise = () => {
+      let lastTime = performance.now()
+      const tick = (now: number) => {
+        if (stopped) return
+        const dt = (now - lastTime) / 1000
+        lastTime = now
+        const max = container.scrollWidth - container.clientWidth
+        const next = Math.min(max, container.scrollLeft + CRUISE_SPEED_PX_PER_SEC * dt)
+        container.scrollLeft = next
+        updateIndexFromScroll()
+        if (next < max) {
+          raf = requestAnimationFrame(tick)
+        } else {
+          timers.push(
+            window.setTimeout(() => {
+              if (stopped) return
+              container.scrollTo({ left: 0, behavior: 'smooth' })
+              setIndex(0)
+            }, RETURN_HOLD_MS),
+          )
+        }
+      }
+      raf = requestAnimationFrame(tick)
+    }
 
-    // After the carousel reaches the last photo, gently sweep back to the
-    // first one so it rests at the beginning instead of trailing off.
-    const sweepBack = window.setTimeout(() => {
-      scrollToItem(0)
-    }, photos.length * STAGGER_MS + RISE_INITIAL_DELAY + SCROLL_OFFSET_MS + RETURN_TO_FIRST_DELAY)
-    timers.push(sweepBack)
+    timers.push(window.setTimeout(cruise, CRUISE_START_DELAY))
+
+    const interrupt = () => {
+      stopped = true
+      cancelAnimationFrame(raf)
+      timers.forEach((t) => window.clearTimeout(t))
+    }
+    container.addEventListener('wheel', interrupt, { passive: true })
+    container.addEventListener('touchstart', interrupt, { passive: true })
+    container.addEventListener('pointerdown', interrupt)
 
     return () => {
+      stopped = true
+      cancelAnimationFrame(raf)
       timers.forEach((t) => window.clearTimeout(t))
+      container.removeEventListener('wheel', interrupt)
+      container.removeEventListener('touchstart', interrupt)
+      container.removeEventListener('pointerdown', interrupt)
     }
   }, [photos, mode])
 
