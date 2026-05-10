@@ -2,6 +2,7 @@
 .claude/
 .playwright-cli/
 .playwright-mcp/
+.env
 
 node_modules/
 dist/
