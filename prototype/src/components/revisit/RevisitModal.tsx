@@ -212,6 +212,7 @@ function CueStage({
   onContinue: () => void
 }) {
   const cue = event.cues[0]?.text ?? 'What returns first when you think about this?'
+  const cueWords = useMemo(() => cue.split(/\s+/).filter(Boolean), [cue])
 
   return (
     <div className="flex flex-col gap-7">
@@ -226,7 +227,15 @@ function CueStage({
           className="text-[24px] leading-9 md:text-[28px] md:leading-[42px]"
           style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
         >
-          {cue}
+          {cueWords.map((word, i) => (
+            <span
+              key={`${cue}-${i}`}
+              className="memory-cue-word"
+              style={{ animationDelay: `${i * 90}ms` }}
+            >
+              {word}
+            </span>
+          ))}
         </p>
       </div>
 
@@ -475,7 +484,10 @@ function ReflectionCard({
               key={photo.id}
               className="absolute left-1/2 top-1/2 memory-card-polaroid"
               style={{
-                transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) rotate(${offset.rotate}deg)`,
+                ['--stack-x' as string]: `${offset.x}px`,
+                ['--stack-y' as string]: `${offset.y}px`,
+                ['--stack-rot' as string]: `${offset.rotate}deg`,
+                ['--drop-delay' as string]: `${idx * 220}ms`,
                 zIndex: idx + 1,
               }}
             >

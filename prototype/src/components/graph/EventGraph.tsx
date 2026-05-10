@@ -27,12 +27,14 @@ import {
   createTemporalEdges,
 } from '../../utils/layout'
 
-function TimeEdge({ sourceX, sourceY, targetX, targetY, id, style }: EdgeProps) {
+function TimeEdge({ sourceX, sourceY, targetX, targetY, id, style, ...rest }: EdgeProps) {
   const [path] = getStraightPath({ sourceX, sourceY, targetX, targetY })
+  const className = (rest as { className?: string }).className
   return (
     <BaseEdge
       id={id}
       path={path}
+      className={className}
       style={{
         stroke: 'var(--edge-time)',
         strokeWidth: 1.6,
@@ -45,12 +47,14 @@ function TimeEdge({ sourceX, sourceY, targetX, targetY, id, style }: EdgeProps) 
   )
 }
 
-function PeopleEdge({ sourceX, sourceY, targetX, targetY, id, style }: EdgeProps) {
+function PeopleEdge({ sourceX, sourceY, targetX, targetY, id, style, ...rest }: EdgeProps) {
   const [path] = getBezierPath({ sourceX, sourceY, targetX, targetY, curvature: 0.18 })
+  const className = (rest as { className?: string }).className
   return (
     <BaseEdge
       id={id}
       path={path}
+      className={className}
       style={{
         stroke: 'var(--edge-people)',
         strokeWidth: 1.7,
@@ -62,12 +66,14 @@ function PeopleEdge({ sourceX, sourceY, targetX, targetY, id, style }: EdgeProps
   )
 }
 
-function ThemeEdge({ sourceX, sourceY, targetX, targetY, id, style }: EdgeProps) {
+function ThemeEdge({ sourceX, sourceY, targetX, targetY, id, style, ...rest }: EdgeProps) {
   const [path] = getBezierPath({ sourceX, sourceY, targetX, targetY, curvature: 0.16 })
+  const className = (rest as { className?: string }).className
   return (
     <BaseEdge
       id={id}
       path={path}
+      className={className}
       style={{
         stroke: 'var(--edge-theme)',
         strokeWidth: 1.7,
@@ -116,26 +122,28 @@ export default function EventGraph() {
 
   const focusedEventId = activeEventId ?? hoveredEventId
 
-  const connectedEdgeIds = useMemo(
-    () =>
-      new Set(
-        visibleEdges
-          .filter((edge) => !focusedEventId || edge.source === focusedEventId || edge.target === focusedEventId)
-          .map((edge) => edge.id),
-      ),
-    [focusedEventId, visibleEdges],
-  )
-
   const edges: Edge[] = useMemo(
     () =>
-      visibleEdges.map((e) => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        type: e.type,
-        style: getEdgeStyle(e.type, focusedEventId != null, connectedEdgeIds.has(e.id)),
-      })),
-    [connectedEdgeIds, focusedEventId, visibleEdges],
+      allEdges.map((e) => {
+        const inLayer = activeLayer === 'all' || e.type === activeLayer
+        const isLit =
+          inLayer && focusedEventId != null && (e.source === focusedEventId || e.target === focusedEventId)
+        const classes = [
+          isLit ? 'memory-edge--lit' : '',
+          !inLayer ? 'memory-edge--off' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
+        return {
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          type: e.type,
+          className: classes || undefined,
+          style: getEdgeStyle(e.type, inLayer && focusedEventId != null, isLit),
+        }
+      }),
+    [allEdges, activeLayer, focusedEventId],
   )
 
   const onNodeClick = useCallback<NodeMouseHandler<MemoryGraphNode>>(

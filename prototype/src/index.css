@@ -64,15 +64,83 @@ textarea::placeholder {
   color: #b39c88;
 }
 
-@keyframes nodeEnter {
-  from {
+@keyframes nodeBloom {
+  0% {
     opacity: 0;
-    transform: scale(0.94) translateY(10px);
+    transform: scale(0.55) translateY(0);
+    filter: blur(8px);
   }
-
-  to {
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
     opacity: 1;
     transform: scale(1) translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes cueWordIn {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes photoBlurIn {
+  from {
+    opacity: 0;
+    filter: blur(14px);
+    transform: translateY(18px) scale(0.97) rotate(var(--card-rotate, 0deg));
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1) rotate(var(--card-rotate, 0deg));
+  }
+}
+
+@keyframes polaroidDrop {
+  0% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--stack-x, 0px)), calc(-50% - 90px))
+      rotate(calc(var(--stack-rot, 0deg) - 28deg));
+  }
+  62% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--stack-x, 0px)), calc(-50% + var(--stack-y, 0px)))
+      rotate(var(--stack-rot, 0deg));
+  }
+}
+
+@keyframes edgeFlow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+@keyframes traceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
@@ -176,7 +244,7 @@ textarea::placeholder {
     box-shadow 160ms ease,
     border-color 160ms ease,
     opacity 160ms ease;
-  animation: nodeEnter 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: nodeBloom 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .memory-photo-node__drag {
@@ -312,6 +380,56 @@ textarea::placeholder {
   cursor: grabbing;
 }
 
+.react-flow__node {
+  transition: z-index 0s 220ms;
+}
+
+.react-flow__node:hover,
+.react-flow__node.dragging,
+.react-flow__node:has(.memory-photo-node.is-active) {
+  z-index: 1000 !important;
+  transition: z-index 0s 0s;
+}
+
+.memory-cue-word {
+  display: inline-block;
+  margin-right: 0.27em;
+  opacity: 0;
+  animation: cueWordIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.memory-photo-card {
+  opacity: 0;
+  animation: photoBlurIn 740ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.react-flow__edge-path {
+  transition: opacity 240ms ease, stroke-width 200ms ease;
+}
+
+.memory-edge--lit {
+  stroke-dasharray: 7 11;
+  animation: edgeFlow 1.6s linear infinite;
+}
+
+.memory-edge--off {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.memory-replay-shell button {
+  transition: transform 140ms ease, box-shadow 200ms ease, background 200ms ease;
+}
+
+.memory-replay-shell button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+.memory-layer-pill:not(.is-active):active {
+  transform: scale(0.96);
+}
+
 .memory-layer-toggle {
   position: absolute;
   top: 22px;
@@ -392,6 +510,7 @@ textarea::placeholder {
   border: 2px solid #fff8ef;
   box-shadow: 0 6px 12px rgba(191, 128, 58, 0.32);
   pointer-events: none;
+  animation: traceIn 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .memory-photo-node__count {
@@ -426,7 +545,7 @@ textarea::placeholder {
 }
 
 .memory-card-stack {
-  animation: cardStackIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* container no longer animates, individual polaroids drop staggered */
 }
 
 .memory-card-polaroid {
@@ -435,7 +554,9 @@ textarea::placeholder {
   background: #fdfaf3;
   border: 1px solid rgba(218, 201, 182, 0.5);
   box-shadow: 0 22px 44px rgba(60, 42, 30, 0.32);
-  transition: transform 220ms ease;
+  opacity: 0;
+  animation: polaroidDrop 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--drop-delay, 0ms);
 }
 
 .memory-card-polaroid__frame {
