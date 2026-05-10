@@ -231,7 +231,7 @@ function CueStage({
             <span
               key={`${cue}-${i}`}
               className="memory-cue-word"
-              style={{ animationDelay: `${i * 90}ms` }}
+              style={{ animationDelay: `${i * 160}ms` }}
             >
               {word}
             </span>
@@ -487,7 +487,7 @@ function ReflectionCard({
                 ['--stack-x' as string]: `${offset.x}px`,
                 ['--stack-y' as string]: `${offset.y}px`,
                 ['--stack-rot' as string]: `${offset.rotate}deg`,
-                ['--drop-delay' as string]: `${idx * 220}ms`,
+                ['--drop-delay' as string]: `${idx * 340}ms`,
                 zIndex: idx + 1,
               }}
             >

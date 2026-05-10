@@ -12,7 +12,7 @@ export default function PhotoGrid({ photos, animate = false }: PhotoGridProps) {
     <div className="grid gap-5 md:grid-cols-3">
       {photos.map((photo, index) => {
         const rotation = ROTATIONS[index % ROTATIONS.length]
-        const delay = animate ? index * 380 : 0
+        const delay = animate ? index * 560 : 0
 
         return (
           <article

@@ -166,7 +166,7 @@ export default function EventGraph() {
 
   const onInit = useCallback<OnInit<MemoryGraphNode, Edge>>((instance) => {
     requestAnimationFrame(() => {
-      instance.fitView({ padding: 0.22, duration: 700 })
+      instance.fitView({ padding: 0.3, duration: 900 })
     })
   }, [])
 
@@ -215,9 +215,9 @@ export default function EventGraph() {
 
 function getEdgeStyle(type: RelationType, hasFocus: boolean, isConnected: boolean) {
   const accentByType = {
-    time: { idle: 0.22, active: 0.66, dim: 0.045, idleW: 1.18, activeW: 1.72 },
-    people: { idle: 0.16, active: 0.88, dim: 0.024, idleW: 1.1, activeW: 2.1 },
-    theme: { idle: 0.18, active: 0.86, dim: 0.024, idleW: 1.1, activeW: 2.1 },
+    time: { idle: 0.42, active: 0.7, dim: 0.06, idleW: 1.4, activeW: 1.9 },
+    people: { idle: 0.36, active: 0.92, dim: 0.05, idleW: 1.4, activeW: 2.4 },
+    theme: { idle: 0.38, active: 0.9, dim: 0.05, idleW: 1.4, activeW: 2.4 },
   }[type]
 
   if (!hasFocus) {
@@ -226,7 +226,7 @@ function getEdgeStyle(type: RelationType, hasFocus: boolean, isConnected: boolea
   if (isConnected) {
     return { opacity: accentByType.active, strokeWidth: accentByType.activeW }
   }
-  return { opacity: accentByType.dim, strokeWidth: 0.88 }
+  return { opacity: accentByType.dim, strokeWidth: 0.95 }
 }
 
 function HybridBackdrop({ events }: { events: MemoryEvent[] }) {

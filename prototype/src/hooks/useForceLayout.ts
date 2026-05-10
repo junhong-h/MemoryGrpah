@@ -44,7 +44,7 @@ interface ForceNode extends SimulationNodeDatum {
 
 type ForceLink = Omit<GraphEdge, 'source' | 'target'> & SimulationLinkDatum<ForceNode>
 
-const COLLISION_BASE = 86
+const COLLISION_BASE = 120
 const DRAG_ALPHA_TARGET = 0.3
 
 export function useForceLayout(events: MemoryEvent[], graphEdges: GraphEdge[]) {
@@ -113,7 +113,7 @@ export function useForceLayout(events: MemoryEvent[], graphEdges: GraphEdge[]) {
       .alpha(0.95)
       .alphaDecay(0.06)
       .velocityDecay(0.34)
-      .force('charge', forceManyBody<ForceNode>().strength(-220))
+      .force('charge', forceManyBody<ForceNode>().strength(-360))
       .force(
         'collision',
         forceCollide<ForceNode>()
@@ -124,20 +124,20 @@ export function useForceLayout(events: MemoryEvent[], graphEdges: GraphEdge[]) {
         'link',
         forceLink<ForceNode, ForceLink>(simulationLinks)
           .id((node) => node.id)
-          .distance((edge) => (edge.type === 'time' ? 172 : 214))
+          .distance((edge) => (edge.type === 'time' ? 220 : 280))
           .strength((edge) => {
-            if (edge.type === 'time') return 0.08
-            if (edge.type === 'people') return 0.24
-            return 0.2
+            if (edge.type === 'time') return 0.07
+            if (edge.type === 'people') return 0.22
+            return 0.18
           }),
       )
       .force(
         'x',
-        forceX<ForceNode>((node) => targetXById.get(node.id) ?? 0).strength(0.34),
+        forceX<ForceNode>((node) => targetXById.get(node.id) ?? 0).strength(0.32),
       )
       .force(
         'y',
-        forceY<ForceNode>((node) => CATEGORY_LANES[node.category].y - NODE_HEIGHT / 2).strength(0.22),
+        forceY<ForceNode>((node) => CATEGORY_LANES[node.category].y - NODE_HEIGHT / 2).strength(0.20),
       )
       .on('tick', () => {
         const positions = new Map(
