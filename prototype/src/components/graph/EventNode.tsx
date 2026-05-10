@@ -39,6 +39,9 @@ interface EventNodeProps {
 function EventNode({ data }: EventNodeProps) {
   const isActive = useStore((s) => s.activeEventId === data.id)
   const isHovered = useStore((s) => s.hoveredEventId === data.id)
+  const categoryFocus = useStore((s) => s.categoryFocus)
+  const isPinned = useStore((s) => s.pinnedEventIds.includes(data.id))
+  const togglePin = useStore((s) => s.togglePin)
 
   const meta = CATEGORY_META[data.category]
   const photoCount = data.photos.length
@@ -48,6 +51,7 @@ function EventNode({ data }: EventNodeProps) {
   const emojiSize = Math.round(58 * scale)
   const overflow = Math.max(0, photoCount - VISIBLE_PHOTO_THRESHOLD)
   const hasReflection = !!data.note
+  const isOutOfFocus = categoryFocus !== null && categoryFocus !== data.category
 
   return (
     <div
@@ -58,6 +62,8 @@ function EventNode({ data }: EventNodeProps) {
         data.revisited ? 'is-recorded' : '',
         isActive ? 'is-active' : '',
         showMeta ? 'shows-meta' : '',
+        isOutOfFocus ? 'is-out-of-focus' : '',
+        isPinned ? 'is-pinned' : '',
       ].join(' ')}
       style={{
         borderColor: isActive ? meta.accent : 'rgba(220, 207, 192, 0.78)',
@@ -108,6 +114,21 @@ function EventNode({ data }: EventNodeProps) {
         <span className="memory-photo-node__trace" title="Reflection saved">
           ✎
         </span>
+      ) : null}
+
+      {(isHovered || isPinned) && !isActive ? (
+        <button
+          type="button"
+          className={['memory-photo-node__pin', isPinned ? 'is-pinned' : ''].join(' ')}
+          onClick={(e) => {
+            e.stopPropagation()
+            togglePin(data.id)
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          title={isPinned ? 'Unpin' : 'Pin to compare'}
+        >
+          {isPinned ? '✓' : '◎'}
+        </button>
       ) : null}
 
       <Handle type="source" position={Position.Right} style={{ opacity: 0, width: 0, height: 0 }} />

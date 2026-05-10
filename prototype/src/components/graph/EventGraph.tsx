@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ReactFlow,
   ViewportPortal,
@@ -15,6 +15,7 @@ import '@xyflow/react/dist/style.css'
 
 import EventNode from './EventNode'
 import LayerToggle from './LayerToggle'
+import CategoryFocusToggle from './CategoryFocusToggle'
 import { useStore } from '../../store/useStore'
 import { useForceLayout, type MemoryGraphNode } from '../../hooks/useForceLayout'
 import type { EventCategory, GraphEdge, MemoryEvent, RelationType } from '../../types'
@@ -173,6 +174,7 @@ export default function EventGraph() {
   return (
     <div className="relative w-full h-full">
       <LayerToggle />
+      <CategoryFocusToggle />
 
       <div className="memory-brand-line">
         <span className="memory-brand-line__name">Folio</span>
@@ -207,6 +209,7 @@ export default function EventGraph() {
         style={{ background: 'var(--canvas-bg)' }}
       >
         <HybridBackdrop events={events} />
+        <GraphTrail nodes={nodes} />
       </ReactFlow>
 
     </div>
@@ -279,4 +282,68 @@ function HybridBackdrop({ events }: { events: MemoryEvent[] }) {
 
 function clampLabelX(x: number) {
   return Math.min(TIMELINE_FRAME.endX - 56, Math.max(TIMELINE_FRAME.startX + 56, x))
+}
+
+function GraphTrail({ nodes }: { nodes: MemoryGraphNode[] }) {
+  const trail = useStore((s) => s.trail)
+  const activeEventId = useStore((s) => s.activeEventId)
+  const resetTrail = useStore((s) => s.resetTrail)
+  const [visible, setVisible] = useState(false)
+  const [fading, setFading] = useState(false)
+
+  useEffect(() => {
+    if (activeEventId == null && trail.length >= 2) {
+      setVisible(true)
+      setFading(false)
+      const fadeTimer = window.setTimeout(() => setFading(true), 1600)
+      const clearTimer = window.setTimeout(() => {
+        setVisible(false)
+        resetTrail()
+      }, 2400)
+      return () => {
+        window.clearTimeout(fadeTimer)
+        window.clearTimeout(clearTimer)
+      }
+    }
+    if (activeEventId != null) {
+      setVisible(false)
+      setFading(false)
+    }
+  }, [activeEventId, trail.length, resetTrail])
+
+  if (!visible || trail.length < 2) return null
+
+  const points = trail
+    .map((step) => {
+      const node = nodes.find((n) => n.id === step.eventId)
+      if (!node) return null
+      const w = typeof node.style?.width === 'number' ? node.style.width : 142
+      const h = typeof node.style?.height === 'number' ? node.style.height : 182
+      return { x: node.position.x + w / 2, y: node.position.y + h / 2 }
+    })
+    .filter((p): p is { x: number; y: number } => p !== null)
+
+  if (points.length < 2) return null
+
+  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+
+  return (
+    <ViewportPortal>
+      <svg
+        className={`memory-graph-trail ${fading ? 'memory-graph-trail--fading' : ''}`}
+        style={{ width: GRAPH_EXTENT.maxX + 320, height: GRAPH_EXTENT.maxY + 320 }}
+      >
+        <path d={d} />
+        {points.map((p, i) => (
+          <circle
+            key={`${i}-${p.x}-${p.y}`}
+            cx={p.x}
+            cy={p.y}
+            r={i === points.length - 1 ? 7 : 5}
+            className="memory-graph-trail__dot"
+          />
+        ))}
+      </svg>
+    </ViewportPortal>
+  )
 }
