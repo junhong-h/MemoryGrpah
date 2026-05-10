@@ -1,6 +1,8 @@
 import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import type { MemoryEvent, EventCategory } from '../../types'
+import { getNodeScale } from '../../utils/layout'
+import { useStore } from '../../store/useStore'
 
 const CATEGORY_META: Record<
   EventCategory,
@@ -28,21 +30,48 @@ const CATEGORY_META: Record<
   },
 }
 
+const VISIBLE_PHOTO_THRESHOLD = 6
+
 interface EventNodeProps {
-  data: MemoryEvent & { isActive: boolean }
+  data: MemoryEvent
 }
 
 function EventNode({ data }: EventNodeProps) {
+  const isActive = useStore((s) => s.activeEventId === data.id)
+  const isHovered = useStore((s) => s.hoveredEventId === data.id)
+
   const meta = CATEGORY_META[data.category]
+  const photoCount = data.photos.length
   const photoPreview = data.photos[0]?.url ?? data.coverEmoji
+  const showMeta = isHovered && !isActive
+  const scale = getNodeScale(photoCount)
+  const emojiSize = Math.round(58 * scale)
+  const overflow = Math.max(0, photoCount - VISIBLE_PHOTO_THRESHOLD)
+  const hasReflection = !!data.note
 
   return (
     <div
-      className={['memory-photo-node', 'memory-photo-node__drag', 'nopan', data.revisited ? 'is-recorded' : '', data.isActive ? 'is-active' : ''].join(' ')}
+      className={[
+        'memory-photo-node',
+        'memory-photo-node__drag',
+        'nopan',
+        data.revisited ? 'is-recorded' : '',
+        isActive ? 'is-active' : '',
+        showMeta ? 'shows-meta' : '',
+      ].join(' ')}
       style={{
-        borderColor: data.isActive ? meta.accent : 'rgba(220, 207, 192, 0.78)',
+        borderColor: isActive ? meta.accent : 'rgba(220, 207, 192, 0.78)',
       }}
     >
+      {showMeta ? (
+        <div className="memory-photo-node__meta">
+          <span className="memory-photo-node__meta-title">{data.title}</span>
+          <span className="memory-photo-node__meta-date">
+            {formatMetaDate(data.dateStart, data.dateEnd)} · {photoCount} photos
+          </span>
+        </div>
+      ) : null}
+
       <div
         className="relative h-full w-full overflow-hidden rounded-[26px]"
         style={{
@@ -57,7 +86,10 @@ function EventNode({ data }: EventNodeProps) {
             background: 'radial-gradient(circle at top, rgba(255,255,255,0.55), transparent 42%)',
           }}
         />
-        <div className="pointer-events-none flex h-full items-center justify-center text-[72px]">
+        <div
+          className="pointer-events-none flex h-full items-center justify-center"
+          style={{ fontSize: `${emojiSize}px`, lineHeight: 1 }}
+        >
           {photoPreview}
         </div>
         <div
@@ -69,6 +101,15 @@ function EventNode({ data }: EventNodeProps) {
         />
       </div>
 
+      {overflow > 0 ? (
+        <span className="memory-photo-node__count">+{overflow}</span>
+      ) : null}
+      {hasReflection ? (
+        <span className="memory-photo-node__trace" title="Reflection saved">
+          ✎
+        </span>
+      ) : null}
+
       <Handle type="source" position={Position.Right} style={{ opacity: 0, width: 0, height: 0 }} />
       <Handle type="target" position={Position.Left} style={{ opacity: 0, width: 0, height: 0 }} />
     </div>
@@ -76,3 +117,19 @@ function EventNode({ data }: EventNodeProps) {
 }
 
 export default memo(EventNode)
+
+function formatMetaDate(dateStart: string, dateEnd?: string) {
+  const formatter = new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+  })
+
+  const start = new Date(`${dateStart}T12:00:00`)
+
+  if (!dateEnd) {
+    return formatter.format(start)
+  }
+
+  const end = new Date(`${dateEnd}T12:00:00`)
+  return `${formatter.format(start)} – ${formatter.format(end)}`
+}

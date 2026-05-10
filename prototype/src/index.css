@@ -16,7 +16,8 @@
   --canvas-bg: #f3eadf;
   --canvas-grid: #e3d5c7;
   --edge-time: #c4b19d;
-  --edge-semantic: #c48a4b;
+  --edge-people: #9e74c7;
+  --edge-theme: #c48a4b;
 
   --amber: #bf803a;
   --amber-light: #f6e4cd;
@@ -74,10 +75,95 @@ textarea::placeholder {
   }
 }
 
+@keyframes replayBackdropIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes replayShellIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes replayFocusSwap {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.986);
+    filter: blur(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes replayFocusEnter {
+  from {
+    opacity: 0;
+    transform: translateX(-18px) scale(0.992);
+    filter: blur(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes replayFocusExitRight {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+
+  48% {
+    opacity: 0.14;
+    transform: translateX(0) scale(0.996);
+    filter: blur(3px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(58px) scale(0.988);
+    filter: blur(10px);
+  }
+}
+
+@keyframes replayAlbumIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.988);
+    filter: blur(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
 .memory-photo-node {
+  position: relative;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(220, 207, 192, 0.78);
   border-radius: 26px;
   background: rgba(255, 248, 239, 0.78);
@@ -107,6 +193,10 @@ textarea::placeholder {
   box-shadow: 0 24px 40px rgba(94, 69, 45, 0.14);
 }
 
+.memory-photo-node.shows-meta {
+  z-index: 5;
+}
+
 .memory-photo-node.is-active {
   box-shadow:
     0 24px 42px rgba(191, 128, 58, 0.14),
@@ -115,6 +205,39 @@ textarea::placeholder {
 
 .memory-photo-node.is-recorded {
   opacity: 0.96;
+}
+
+.memory-replay-overlay {
+  animation: replayBackdropIn 220ms ease-out both;
+}
+
+.memory-replay-backdrop {
+  animation: replayBackdropIn 260ms ease-out both;
+}
+
+.memory-replay-shell {
+  transform-origin: center;
+  animation: replayShellIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.memory-replay-stage--focus-enter {
+  animation: replayFocusEnter 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.memory-replay-stage--focus-exit {
+  animation: replayFocusExitRight 440ms cubic-bezier(0.32, 0, 0.18, 1) both;
+}
+
+.memory-replay-stage--album {
+  animation: replayAlbumIn 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.memory-replay-arrow:hover {
+  transform: translateX(4px) scale(1.03);
+}
+
+.memory-replay-arrow:active {
+  transform: translateX(8px) scale(0.98);
 }
 
 .memory-photo-grain {
@@ -129,10 +252,173 @@ textarea::placeholder {
   pointer-events: none;
 }
 
+.memory-photo-node__meta {
+  position: absolute;
+  left: 50%;
+  top: -16px;
+  display: flex;
+  width: max-content;
+  max-width: 220px;
+  flex-direction: column;
+  gap: 2px;
+  transform: translate(-50%, -100%);
+  border: 1px solid rgba(208, 190, 172, 0.86);
+  border-radius: 16px;
+  background: rgba(255, 252, 246, 0.94);
+  padding: 9px 12px 8px;
+  box-shadow: 0 16px 28px rgba(82, 59, 40, 0.1);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.memory-photo-node__meta-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+}
+
+.memory-photo-node__meta-date {
+  font-size: 10.5px;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
+.memory-semantic-band {
+  position: absolute;
+  height: 188px;
+  border-radius: 999px;
+  opacity: 0.28;
+  filter: blur(34px);
+}
+
+.memory-timeline-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(128, 106, 88, 0.74);
+  white-space: nowrap;
+}
+
 .react-flow__pane {
   cursor: grab;
 }
 
 .react-flow__pane:active {
   cursor: grabbing;
+}
+
+.memory-layer-toggle {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(218, 201, 182, 0.86);
+  background: rgba(255, 250, 243, 0.92);
+  box-shadow: 0 14px 28px rgba(94, 69, 45, 0.10);
+  backdrop-filter: blur(8px);
+}
+
+.memory-layer-toggle__label {
+  margin-left: 8px;
+  margin-right: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.memory-layer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.memory-layer-pill:hover {
+  background: rgba(60, 42, 30, 0.04);
+}
+
+.memory-layer-pill.is-active {
+  color: #fff8f0;
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  box-shadow: 0 12px 22px rgba(60, 42, 30, 0.18);
+}
+
+.memory-layer-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.memory-help-hint {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  z-index: 10;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(218, 201, 182, 0.86);
+  background: rgba(255, 250, 243, 0.86);
+  font-size: 12px;
+  color: var(--text-secondary);
+  box-shadow: 0 12px 22px rgba(94, 69, 45, 0.08);
+  pointer-events: none;
+}
+
+.memory-photo-node__trace {
+  position: absolute;
+  left: -8px;
+  bottom: -8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: #fff8f0;
+  font-size: 13px;
+  border: 2px solid #fff8ef;
+  box-shadow: 0 6px 12px rgba(191, 128, 58, 0.32);
+  pointer-events: none;
+}
+
+.memory-photo-node__count {
+  position: absolute;
+  right: -6px;
+  top: -10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(60, 42, 30, 0.86);
+  color: #fff8f0;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border: 1.5px solid #fff8ef;
+  pointer-events: none;
 }

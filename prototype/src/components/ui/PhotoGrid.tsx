@@ -4,14 +4,20 @@ import type { Photo } from '../../types'
 interface PhotoGridProps {
   photos: Photo[]
   animate?: boolean
+  visibleCount?: number
 }
 
 const ROTATIONS = [-2.6, 1.8, -1.2, 2.4, -1.8, 1.4]
 
-export default function PhotoGrid({ photos, animate = false }: PhotoGridProps) {
-  const [visible, setVisible] = useState<number>(animate ? 0 : photos.length)
+export default function PhotoGrid({ photos, animate = false, visibleCount }: PhotoGridProps) {
+  const [visible, setVisible] = useState<number>(visibleCount ?? (animate ? 0 : photos.length))
 
   useEffect(() => {
+    if (visibleCount != null) {
+      setVisible(visibleCount)
+      return
+    }
+
     if (!animate) {
       setVisible(photos.length)
       return
@@ -32,7 +38,7 @@ export default function PhotoGrid({ photos, animate = false }: PhotoGridProps) {
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer))
     }
-  }, [animate, photos])
+  }, [animate, photos, visibleCount])
 
   return (
     <div className="grid gap-5 md:grid-cols-3">
@@ -40,18 +46,18 @@ export default function PhotoGrid({ photos, animate = false }: PhotoGridProps) {
         const isVisible = index < visible
         const rotation = ROTATIONS[index % ROTATIONS.length]
 
-        return (
+      return (
           <article
-          key={photo.id}
+            key={photo.id}
             className="rounded-[28px] border p-3 transition-all duration-500"
             style={{
               background: 'var(--bg-surface)',
               borderColor: 'var(--border)',
               boxShadow: '0 20px 36px rgba(94, 69, 45, 0.10)',
-              opacity: isVisible ? 1 : 0,
+              opacity: isVisible ? 1 : 0.94,
               transform: isVisible
                 ? `translateY(0px) rotate(${rotation}deg)`
-                : 'translateY(18px) scale(0.98)',
+                : 'translateY(12px) scale(0.985)',
             }}
           >
             <div
@@ -70,15 +76,33 @@ export default function PhotoGrid({ photos, animate = false }: PhotoGridProps) {
               >
                 Photo {index + 1}
               </div>
-              <span className="text-[72px]">{photo.url}</span>
+              {isVisible ? (
+                <span className="text-[72px]">{photo.url}</span>
+              ) : (
+                <div
+                  className="flex h-[74%] w-[74%] flex-col items-center justify-center rounded-[20px] border text-center"
+                  style={{
+                    borderColor: 'rgba(218, 201, 182, 0.78)',
+                    background: 'rgba(255, 248, 239, 0.68)',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
+                    Hidden
+                  </span>
+                  <span className="mt-3 text-[24px] leading-none">···</span>
+                </div>
+              )}
             </div>
 
             <div className="px-2 pb-2 pt-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--text-muted)' }}>
-                Caption
+                {isVisible ? 'Caption' : 'Next reveal'}
               </p>
               <p className="mt-2 text-[14px] leading-6" style={{ color: 'var(--text-primary)' }}>
-                {photo.caption ?? 'A remembered fragment from this moment.'}
+                {isVisible
+                  ? photo.caption ?? 'A remembered fragment from this moment.'
+                  : 'This frame stays closed until you choose to reveal it.'}
               </p>
             </div>
           </article>

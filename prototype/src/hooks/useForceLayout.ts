@@ -18,35 +18,42 @@ import {
 } from 'd3-force'
 
 import type { EventCategory, GraphEdge, MemoryEvent } from '../types'
-import { CATEGORY_ANCHORS, NODE_HEIGHT, NODE_WIDTH, createSeedPositions } from '../utils/layout'
+import {
+  CATEGORY_LANES,
+  GRAPH_EXTENT,
+  NODE_HEIGHT,
+  NODE_WIDTH,
+  createSeedPositions,
+  getNodeScale,
+  getNodeSize,
+  getTemporalBounds,
+  getTimelineX,
+} from '../utils/layout'
 
-export interface MemoryGraphNodeData extends Record<string, unknown>, MemoryEvent {
-  isActive: boolean
-}
+export type MemoryGraphNodeData = MemoryEvent & Record<string, unknown>
 
 export type MemoryGraphNode = Node<MemoryGraphNodeData, 'event'>
 
 interface ForceNode extends SimulationNodeDatum {
   id: string
   category: EventCategory
+  photoCount: number
   fx: number | null
   fy: number | null
 }
 
 type ForceLink = Omit<GraphEdge, 'source' | 'target'> & SimulationLinkDatum<ForceNode>
 
-const COLLISION_RADIUS = 96
+const COLLISION_BASE = 86
+const DRAG_ALPHA_TARGET = 0.3
 
-export function useForceLayout(
-  events: MemoryEvent[],
-  graphEdges: GraphEdge[],
-  activeEventId: string | null,
-) {
+export function useForceLayout(events: MemoryEvent[], graphEdges: GraphEdge[]) {
   const seedPositions = useMemo(() => createSeedPositions(events), [events])
+  const temporalBounds = useMemo(() => getTemporalBounds(events), [events])
 
   const initialNodes = useMemo(
-    () => createGraphNodes(events, seedPositions, activeEventId),
-    [events, seedPositions, activeEventId],
+    () => createGraphNodes(events, seedPositions),
+    [events, seedPositions],
   )
 
   const simulationRef = useRef<Simulation<ForceNode, ForceLink> | null>(null)
@@ -63,28 +70,30 @@ export function useForceLayout(
   useEffect(() => {
     setNodes((currentNodes) => {
       const currentMap = new Map(currentNodes.map((node) => [node.id, node]))
-
-      return createGraphNodes(
-        events,
-        seedPositions,
-        activeEventId,
-        currentMap,
-      )
+      return createGraphNodes(events, seedPositions, currentMap)
     })
-  }, [activeEventId, events, seedPositions, setNodes])
+  }, [events, seedPositions, setNodes])
 
   useEffect(() => {
     const currentNodeMap = new Map(nodesRef.current.map((node) => [node.id, node]))
     const previousForceNodes = forceNodesRef.current
+    const targetXById = new Map(
+      events.map((event) => [event.id, getTimelineX(event.dateStart, temporalBounds) - NODE_WIDTH / 2]),
+    )
 
     const simulationNodes: ForceNode[] = events.map((event) => {
       const currentNode = currentNodeMap.get(event.id)
       const previousForceNode = previousForceNodes.get(event.id)
-      const seed = currentNode?.position ?? seedPositions[event.id] ?? CATEGORY_ANCHORS[event.category]
+      const lane = CATEGORY_LANES[event.category]
+      const seed = currentNode?.position ?? seedPositions[event.id] ?? {
+        x: targetXById.get(event.id) ?? 0,
+        y: lane.y - NODE_HEIGHT / 2,
+      }
 
       return {
         id: event.id,
         category: event.category,
+        photoCount: event.photos.length,
         x: previousForceNode?.x ?? seed.x,
         y: previousForceNode?.y ?? seed.y,
         vx: previousForceNode?.vx ?? 0,
@@ -102,27 +111,33 @@ export function useForceLayout(
 
     const simulation = forceSimulation(simulationNodes)
       .alpha(0.95)
-      .alphaDecay(0.065)
-      .velocityDecay(0.28)
-      .force('charge', forceManyBody<ForceNode>().strength(-380))
+      .alphaDecay(0.06)
+      .velocityDecay(0.34)
+      .force('charge', forceManyBody<ForceNode>().strength(-220))
       .force(
         'collision',
-        forceCollide<ForceNode>().radius(COLLISION_RADIUS).iterations(3),
+        forceCollide<ForceNode>()
+          .radius((node) => COLLISION_BASE * getNodeScale(node.photoCount))
+          .iterations(4),
       )
       .force(
         'link',
         forceLink<ForceNode, ForceLink>(simulationLinks)
           .id((node) => node.id)
-          .distance((edge) => (edge.type === 'semantic' ? 184 : 220))
-          .strength((edge) => (edge.type === 'semantic' ? 0.28 : 0.14)),
+          .distance((edge) => (edge.type === 'time' ? 172 : 214))
+          .strength((edge) => {
+            if (edge.type === 'time') return 0.08
+            if (edge.type === 'people') return 0.24
+            return 0.2
+          }),
       )
       .force(
         'x',
-        forceX<ForceNode>((node) => CATEGORY_ANCHORS[node.category].x).strength(0.15),
+        forceX<ForceNode>((node) => targetXById.get(node.id) ?? 0).strength(0.34),
       )
       .force(
         'y',
-        forceY<ForceNode>((node) => CATEGORY_ANCHORS[node.category].y).strength(0.13),
+        forceY<ForceNode>((node) => CATEGORY_LANES[node.category].y - NODE_HEIGHT / 2).strength(0.22),
       )
       .on('tick', () => {
         const positions = new Map(
@@ -151,15 +166,7 @@ export function useForceLayout(
     return () => {
       simulation.stop()
     }
-  }, [events, graphEdges, seedPositions, setNodes])
-
-  const nudgeSimulation = useCallback((alphaTarget: number, alpha: number) => {
-    const simulation = simulationRef.current
-
-    if (!simulation) return
-
-    simulation.alphaTarget(alphaTarget).alpha(alpha).restart()
-  }, [])
+  }, [events, graphEdges, seedPositions, setNodes, temporalBounds])
 
   const onNodesChange = useCallback<OnNodesChange<MemoryGraphNode>>(
     (changes) => {
@@ -168,52 +175,54 @@ export function useForceLayout(
     [onNodesChangeBase],
   )
 
-  const onNodeDragStart = useCallback<OnNodeDrag<MemoryGraphNode>>(
-    (_, node) => {
-      draggingNodeIdsRef.current.add(node.id)
+  const onNodeDragStart = useCallback<OnNodeDrag<MemoryGraphNode>>((_, node) => {
+    draggingNodeIdsRef.current.add(node.id)
 
-      const forceNode = forceNodesRef.current.get(node.id)
-
-      if (!forceNode) return
-
-      forceNode.x = node.position.x
-      forceNode.y = node.position.y
-      forceNode.fx = node.position.x
-      forceNode.fy = node.position.y
-
-      nudgeSimulation(0.18, 0.26)
-    },
-    [nudgeSimulation],
-  )
-
-  const onNodeDrag = useCallback<OnNodeDrag<MemoryGraphNode>>((_, node) => {
     const forceNode = forceNodesRef.current.get(node.id)
-
     if (!forceNode) return
 
     forceNode.x = node.position.x
     forceNode.y = node.position.y
     forceNode.fx = node.position.x
     forceNode.fy = node.position.y
+
+    const sim = simulationRef.current
+    if (sim) {
+      sim.alphaTarget(DRAG_ALPHA_TARGET).alpha(Math.max(sim.alpha(), 0.4)).restart()
+    }
   }, [])
 
-  const onNodeDragStop = useCallback<OnNodeDrag<MemoryGraphNode>>(
-    (_, node) => {
-      draggingNodeIdsRef.current.delete(node.id)
+  const onNodeDrag = useCallback<OnNodeDrag<MemoryGraphNode>>((_, node) => {
+    const forceNode = forceNodesRef.current.get(node.id)
+    if (!forceNode) return
 
-      const forceNode = forceNodesRef.current.get(node.id)
+    forceNode.x = node.position.x
+    forceNode.y = node.position.y
+    forceNode.fx = node.position.x
+    forceNode.fy = node.position.y
 
-      if (!forceNode) return
+    const sim = simulationRef.current
+    if (sim && sim.alphaTarget() < DRAG_ALPHA_TARGET) {
+      sim.alphaTarget(DRAG_ALPHA_TARGET)
+    }
+  }, [])
 
-      forceNode.x = node.position.x
-      forceNode.y = node.position.y
-      forceNode.fx = null
-      forceNode.fy = null
+  const onNodeDragStop = useCallback<OnNodeDrag<MemoryGraphNode>>((_, node) => {
+    draggingNodeIdsRef.current.delete(node.id)
 
-      nudgeSimulation(0, 0.18)
-    },
-    [nudgeSimulation],
-  )
+    const forceNode = forceNodesRef.current.get(node.id)
+    if (!forceNode) return
+
+    forceNode.x = node.position.x
+    forceNode.y = node.position.y
+    forceNode.fx = null
+    forceNode.fy = null
+
+    const sim = simulationRef.current
+    if (sim) {
+      sim.alphaTarget(0).alpha(Math.max(sim.alpha(), 0.18)).restart()
+    }
+  }, [])
 
   return {
     nodes,
@@ -227,28 +236,32 @@ export function useForceLayout(
 function createGraphNodes(
   events: MemoryEvent[],
   seedPositions: Record<string, { x: number; y: number }>,
-  activeEventId: string | null,
   existingNodes?: Map<string, MemoryGraphNode>,
 ): MemoryGraphNode[] {
   return events.map((event) => {
     const existingNode = existingNodes?.get(event.id)
-    const seedPosition = seedPositions[event.id] ?? CATEGORY_ANCHORS[event.category]
+    const seedPosition = seedPositions[event.id] ?? {
+      x: GRAPH_EXTENT.minX + 120,
+      y: CATEGORY_LANES[event.category].y - NODE_HEIGHT / 2,
+    }
+    const size = getNodeSize(event.photos.length)
+
+    if (existingNode && existingNode.data === event) {
+      return existingNode
+    }
 
     return {
       id: event.id,
       type: 'event',
       position: existingNode?.position ?? seedPosition,
-      data: {
-        ...event,
-        isActive: activeEventId === event.id,
-      },
+      data: event as MemoryGraphNodeData,
       draggable: true,
       dragHandle: '.memory-photo-node__drag',
       selectable: false,
       focusable: false,
       style: {
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
+        width: size.width,
+        height: size.height,
       },
     }
   })
@@ -256,8 +269,8 @@ function createGraphNodes(
 
 function clampPosition(x: number, y: number) {
   return {
-    x: Math.min(1380, Math.max(-40, x)),
-    y: Math.min(980, Math.max(-60, y)),
+    x: Math.min(GRAPH_EXTENT.maxX - NODE_WIDTH, Math.max(GRAPH_EXTENT.minX, x)),
+    y: Math.min(GRAPH_EXTENT.maxY - NODE_HEIGHT, Math.max(GRAPH_EXTENT.minY, y)),
   }
 }
 

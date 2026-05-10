@@ -1,8 +1,12 @@
 export type EventCategory = 'travel' | 'social' | 'milestone' | 'daily'
 
+export type RelationType = 'time' | 'people' | 'theme'
+
+export type LayerFilter = 'all' | RelationType
+
 export interface Photo {
   id: string
-  url: string          // mock: emoji or placeholder URL
+  url: string
   caption?: string
 }
 
@@ -13,20 +17,22 @@ export interface CueQuestion {
 
 export interface RelatedEvent {
   eventId: string
-  reason: string       // preserved in mock data; not rendered in the current demo flow
-  similarity: number   // 0–1
+  reason: string
+  relation: Exclude<RelationType, 'time'>
+  similarity: number
 }
 
 export interface EventNote {
-  cueResponses: string[]   // one per cue question
+  cueResponses: string[]
   writeback: string
   createdAt: string
+  jumpedToEventIds?: string[]
 }
 
 export interface MemoryEvent {
   id: string
   title: string
-  dateStart: string          // ISO date
+  dateStart: string
   dateEnd?: string
   category: EventCategory
   coverEmoji: string
@@ -41,5 +47,6 @@ export interface GraphEdge {
   id: string
   source: string
   target: string
-  type: 'time' | 'semantic'   // time = dashed gray, semantic = solid amber
+  type: RelationType
+  reason?: string
 }
