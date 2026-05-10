@@ -238,7 +238,13 @@
         { "eventId": "evt_008", "reason": "Outdoor adventure", "relation": "theme", "similarity": 0.79 },
         { "eventId": "evt_013", "reason": "Quiet travel", "relation": "theme", "similarity": 0.66 }
       ],
-      "revisited": false
+      "note": {
+        "cueResponses": ["Mengqi led most of the way, I just kept up"],
+        "writeback": "The cliff at sunrise is what I went for, but it's the path through the pines I keep walking back into.",
+        "createdAt": "2025-12-15T10:30:00.000Z",
+        "jumpedToEventIds": ["evt_002"]
+      },
+      "revisited": true
     },
     {
       "id": "evt_011",

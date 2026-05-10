@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useStore } from '../../store/useStore'
-import PhotoGrid from '../ui/PhotoGrid'
-import { pickThreePhotos, maxReshuffleSteps } from '../../utils/photoPick'
+import PhotoCarousel from '../ui/PhotoCarousel'
+import { pickThreePhotos } from '../../utils/photoPick'
 import type { EventCategory, MemoryEvent, RelatedEvent } from '../../types'
 
 const BRAND = 'Folio'
@@ -113,8 +113,7 @@ export default function RevisitModal() {
             {stage === 'reveal' && (
               <RevealStage
                 event={event}
-                reshuffleStep={reshuffleStep}
-                onReshuffle={() => setReshuffleStep((s) => s + 1)}
+                cueResponse={cueResponse}
                 onContinue={() => setStage('writeback')}
                 onBack={() => setStage('cue')}
               />
@@ -290,18 +289,24 @@ function CueStage({
 }) {
   const cue = event.cues[0]?.text ?? 'What returns first when you think about this?'
   const cueWords = useMemo(() => cue.split(/\s+/).filter(Boolean), [cue])
+  const coverPhoto = event.photos[0]?.url ?? event.coverEmoji
+  const categoryMeta = CATEGORY_META[event.category]
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-6">
       <div
-        className="rounded-[28px] border p-7 md:p-9"
+        className="memory-cue-cover"
         style={{
-          background: 'linear-gradient(180deg, #FBF4EA 0%, #F4E8D8 100%)',
-          borderColor: 'rgba(218, 201, 182, 0.7)',
+          ['--cue-cover-tint' as string]: categoryMeta.background,
         }}
       >
+        <span className="memory-cue-cover__media">{coverPhoto}</span>
+        <div className="memory-cue-cover__veil" />
+      </div>
+
+      <div>
         <p
-          className="text-[24px] leading-9 md:text-[28px] md:leading-[42px]"
+          className="text-[22px] leading-9 md:text-[26px] md:leading-[40px]"
           style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
         >
           {cueWords.map((word, i) => (
@@ -317,7 +322,7 @@ function CueStage({
       </div>
 
       <textarea
-        rows={5}
+        rows={4}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Just let it surface…"
@@ -326,7 +331,7 @@ function CueStage({
           background: 'var(--bg-elevated)',
           borderColor: 'var(--border)',
           color: 'var(--text-primary)',
-          minHeight: 152,
+          minHeight: 132,
         }}
       />
 
@@ -350,59 +355,44 @@ function CueStage({
 
 function RevealStage({
   event,
-  reshuffleStep,
-  onReshuffle,
+  cueResponse,
   onContinue,
   onBack,
 }: {
   event: MemoryEvent
-  reshuffleStep: number
-  onReshuffle: () => void
+  cueResponse: string
   onContinue: () => void
   onBack: () => void
 }) {
-  const selected = useMemo(
-    () => pickThreePhotos(event.photos, reshuffleStep),
-    [event.photos, reshuffleStep],
-  )
-  const canReshuffle = maxReshuffleSteps(event.photos) > 1
-
   return (
-    <div className="flex flex-col gap-6">
-      <p
-        className="text-[15px] leading-7"
-        style={{ fontFamily: "'Lora', serif", color: 'var(--text-secondary)', fontStyle: 'italic' }}
-      >
-        Three from this day —
-      </p>
+    <div className="flex flex-col gap-5">
+      {cueResponse.trim() ? (
+        <p
+          className="text-[14px] leading-6"
+          style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', color: 'var(--text-secondary)' }}
+        >
+          “{cueResponse.trim()}” — and then it surfaces.
+        </p>
+      ) : (
+        <p
+          className="text-[14px] leading-6"
+          style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', color: 'var(--text-muted)' }}
+        >
+          The day surfaces, one frame at a time —
+        </p>
+      )}
 
-      <PhotoGrid key={reshuffleStep} photos={selected} animate />
+      <PhotoCarousel photos={event.photos} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="rounded-full px-4 py-2 text-[13px] font-medium"
-            style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-          >
-            Back
-          </button>
-          {canReshuffle ? (
-            <button
-              type="button"
-              onClick={onReshuffle}
-              className="rounded-full px-4 py-2 text-[13px] font-medium"
-              style={{
-                color: 'var(--amber)',
-                border: '1px solid rgba(191, 128, 58, 0.4)',
-                background: 'rgba(246, 228, 205, 0.6)',
-              }}
-            >
-              Other moments
-            </button>
-          ) : null}
-        </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="rounded-full px-4 py-2 text-[13px] font-medium"
+          style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+        >
+          Back
+        </button>
 
         <button
           type="button"
@@ -436,11 +426,60 @@ function WritebackStage({
   onSave: () => void
   onBack: () => void
 }) {
+  const allEvents = useStore((s) => s.events)
   const photoStrip = useMemo(() => pickThreePhotos(event.photos, 0), [event.photos])
   const canSave = value.trim().length > 0
 
+  const previousNote = event.note
+  const previousJumps = useMemo(() => {
+    if (!previousNote?.jumpedToEventIds) return []
+    return previousNote.jumpedToEventIds
+      .map((id) => allEvents.find((e) => e.id === id))
+      .filter((e): e is MemoryEvent => !!e)
+  }, [previousNote, allEvents])
+
+  const timeSince = useMemo(() => {
+    if (!previousNote?.createdAt) return ''
+    const last = new Date(previousNote.createdAt)
+    const now = new Date()
+    const days = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24))
+    if (days < 1) return 'just now'
+    if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`
+    const weeks = Math.floor(days / 7)
+    if (weeks < 8) return `${weeks} week${weeks > 1 ? 's' : ''} ago`
+    const months = Math.floor(days / 30)
+    return `${months} month${months > 1 ? 's' : ''} ago`
+  }, [previousNote?.createdAt])
+
+  const hasHistory = !!(previousNote && previousNote.writeback)
+
   return (
     <div className="flex flex-col gap-6">
+      {hasHistory ? (
+        <div className="memory-history-block">
+          <p className="memory-history-block__header">What you left here before</p>
+
+          <div className="memory-history-block__row">
+            <span className="memory-history-block__meta">{timeSince}, you wrote</span>
+            <p className="memory-history-block__quote">“{previousNote!.writeback}”</p>
+          </div>
+
+          {previousJumps.length > 0 ? (
+            <div className="memory-history-block__row">
+              <span className="memory-history-block__meta">and you walked to</span>
+              <div className="memory-history-block__jumps">
+                {previousJumps.map((j) => (
+                  <span key={j.id} className="memory-history-block__jump-chip">
+                    <span>{j.coverEmoji}</span>
+                    <span>{j.title}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         {photoStrip.map((photo) => (
           <span
@@ -465,7 +504,7 @@ function WritebackStage({
             className="text-[14px] leading-7"
             style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', color: 'var(--text-secondary)' }}
           >
-            Earlier you said — “{cueResponse.trim()}”
+            A moment ago you said — “{cueResponse.trim()}”
           </p>
         </div>
       ) : null}
@@ -474,7 +513,7 @@ function WritebackStage({
         className="text-[22px] leading-9 md:text-[24px]"
         style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
       >
-        Anything you want to keep from this?
+        {hasHistory ? 'And now — anything new to keep?' : 'Anything you want to keep from this?'}
       </p>
 
       <textarea
