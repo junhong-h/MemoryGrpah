@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;1,400;1,500&display=swap');
 
 :root {
   --bg-base: #f5ede2;
@@ -327,16 +328,6 @@ textarea::placeholder {
   backdrop-filter: blur(8px);
 }
 
-.memory-layer-toggle__label {
-  margin-left: 8px;
-  margin-right: 4px;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 .memory-layer-pill {
   display: inline-flex;
   align-items: center;
@@ -344,9 +335,9 @@ textarea::placeholder {
   padding: 7px 14px;
   border: 1px solid transparent;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   color: var(--text-secondary);
   background: transparent;
   cursor: pointer;
@@ -421,4 +412,79 @@ textarea::placeholder {
   letter-spacing: 0.05em;
   border: 1.5px solid #fff8ef;
   pointer-events: none;
+}
+
+@keyframes cardStackIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.memory-card-stack {
+  animation: cardStackIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.memory-card-polaroid {
+  width: 168px;
+  padding: 12px 12px 22px;
+  background: #fdfaf3;
+  border: 1px solid rgba(218, 201, 182, 0.5);
+  box-shadow: 0 22px 44px rgba(60, 42, 30, 0.32);
+  transition: transform 220ms ease;
+}
+
+.memory-card-polaroid__frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(160deg, #F7EFE4 0%, #EEDFCF 100%);
+  border-radius: 2px;
+}
+
+.memory-card-polaroid__photo {
+  font-size: 70px;
+  line-height: 1;
+}
+
+.memory-card-polaroid__caption {
+  margin-top: 12px;
+  font-family: 'Caveat', cursive;
+  font-size: 18px;
+  font-weight: 500;
+  text-align: center;
+  color: #6f5640;
+  line-height: 1.15;
+  padding: 0 4px;
+}
+
+.memory-brand-line {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.memory-brand-line__name {
+  font-family: 'Lora', serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.memory-brand-line__sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
 }

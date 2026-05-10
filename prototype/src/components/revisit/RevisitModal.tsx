@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useStore } from '../../store/useStore'
 import PhotoGrid from '../ui/PhotoGrid'
-import ForceInput, { MIN_RESPONSE_CHARS } from '../ui/ForceInput'
-import StepIndicator from '../ui/StepIndicator'
 import { pickThreePhotos, maxReshuffleSteps } from '../../utils/photoPick'
 import type { EventCategory, MemoryEvent, RelatedEvent } from '../../types'
+
+const BRAND = 'Folio'
 
 const CATEGORY_META: Record<EventCategory, { label: string; color: string; background: string }> = {
   travel: { label: 'Travel', color: 'var(--travel-accent)', background: 'var(--travel-soft)' },
@@ -13,22 +13,7 @@ const CATEGORY_META: Record<EventCategory, { label: string; color: string; backg
   daily: { label: 'Daily', color: 'var(--daily-accent)', background: 'var(--daily-soft)' },
 }
 
-const RELATION_META: Record<'people' | 'theme', { label: string; color: string; background: string }> = {
-  people: {
-    label: 'People',
-    color: 'var(--edge-people)',
-    background: 'rgba(158, 116, 199, 0.14)',
-  },
-  theme: {
-    label: 'Theme',
-    color: 'var(--edge-theme)',
-    background: 'rgba(196, 138, 75, 0.16)',
-  },
-}
-
-type Stage = 'cue' | 'reveal' | 'writeback' | 'connect'
-
-const STAGE_LABELS = ['Recall', 'Reveal', 'Reflect']
+type Stage = 'cue' | 'reveal' | 'writeback' | 'card' | 'connect'
 
 export default function RevisitModal() {
   const events = useStore((s) => s.events)
@@ -41,14 +26,12 @@ export default function RevisitModal() {
 
   const [stage, setStage] = useState<Stage>('cue')
   const [cueResponse, setCueResponse] = useState('')
-  const [cueSkipped, setCueSkipped] = useState(false)
   const [writeback, setWriteback] = useState('')
   const [reshuffleStep, setReshuffleStep] = useState(0)
 
   const reset = useCallback(() => {
     setStage('cue')
     setCueResponse('')
-    setCueSkipped(false)
     setWriteback('')
     setReshuffleStep(0)
   }, [])
@@ -65,6 +48,8 @@ export default function RevisitModal() {
     closeEvent()
   }
 
+  const isCardStage = stage === 'card'
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 memory-replay-overlay"
@@ -74,41 +59,50 @@ export default function RevisitModal() {
     >
       <div
         className="absolute inset-0 backdrop-blur-sm memory-replay-backdrop"
-        style={{ background: 'rgba(75, 56, 38, 0.22)' }}
+        style={{ background: isCardStage ? 'rgba(56, 38, 24, 0.62)' : 'rgba(75, 56, 38, 0.22)' }}
       />
 
       <div
-        className="relative z-10 w-full max-w-[860px] max-h-[94vh] overflow-hidden rounded-[34px] border memory-replay-shell"
+        className={[
+          'relative z-10 w-full overflow-hidden rounded-[34px] border memory-replay-shell',
+          isCardStage ? 'max-w-[640px]' : 'max-w-[860px]',
+        ].join(' ')}
         style={{
-          background: 'rgba(255, 250, 244, 0.98)',
-          borderColor: 'rgba(218, 201, 182, 0.9)',
-          boxShadow: '0 34px 74px rgba(79, 56, 37, 0.20)',
+          maxHeight: '94vh',
+          background: isCardStage ? 'transparent' : 'rgba(255, 250, 244, 0.98)',
+          borderColor: isCardStage ? 'transparent' : 'rgba(218, 201, 182, 0.9)',
+          boxShadow: isCardStage ? 'none' : '0 34px 74px rgba(79, 56, 37, 0.20)',
         }}
       >
-        <button
-          type="button"
-          onClick={handleClose}
-          className="absolute right-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-full text-xl"
-          style={{
-            color: 'var(--text-secondary)',
-            background: 'rgba(255, 252, 246, 0.86)',
-            border: '1px solid rgba(218, 201, 182, 0.8)',
-          }}
-        >
-          ×
-        </button>
+        {!isCardStage ? (
+          <button
+            type="button"
+            onClick={handleClose}
+            className="absolute right-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-full text-xl"
+            style={{
+              color: 'var(--text-secondary)',
+              background: 'rgba(255, 252, 246, 0.86)',
+              border: '1px solid rgba(218, 201, 182, 0.8)',
+            }}
+          >
+            ×
+          </button>
+        ) : null}
 
         <div className="flex max-h-[94vh] flex-col">
-          <ModalHeader event={event} stage={stage} />
+          {!isCardStage ? <ModalHeader event={event} /> : null}
 
-          <div className="flex-1 overflow-y-auto px-7 pb-8 pt-4 md:px-10">
+          <div
+            className={[
+              isCardStage ? 'px-4 py-6' : 'px-7 pb-8 pt-4 md:px-10',
+              'flex-1 overflow-y-auto',
+            ].join(' ')}
+          >
             {stage === 'cue' && (
               <CueStage
                 event={event}
                 value={cueResponse}
                 onChange={setCueResponse}
-                skipped={cueSkipped}
-                onSkipChange={(next) => setCueSkipped(next)}
                 onContinue={() => setStage('reveal')}
               />
             )}
@@ -127,17 +121,26 @@ export default function RevisitModal() {
               <WritebackStage
                 event={event}
                 cueResponse={cueResponse}
-                cueSkipped={cueSkipped}
                 value={writeback}
                 onChange={setWriteback}
                 onSave={() => {
                   saveReflection(event.id, {
-                    cueResponses: cueSkipped ? [] : [cueResponse],
+                    cueResponses: cueResponse.trim() ? [cueResponse] : [],
                     writeback,
                   })
-                  setStage('connect')
+                  setStage('card')
                 }}
                 onBack={() => setStage('reveal')}
+              />
+            )}
+
+            {stage === 'card' && (
+              <ReflectionCard
+                event={event}
+                writeback={writeback}
+                reshuffleStep={reshuffleStep}
+                onContinue={() => setStage('connect')}
+                onClose={handleClose}
               />
             )}
 
@@ -158,7 +161,7 @@ export default function RevisitModal() {
   )
 }
 
-function ModalHeader({ event, stage }: { event: MemoryEvent; stage: Stage }) {
+function ModalHeader({ event }: { event: MemoryEvent }) {
   const categoryMeta = CATEGORY_META[event.category]
   const dateLabel = useMemo(
     () =>
@@ -170,17 +173,15 @@ function ModalHeader({ event, stage }: { event: MemoryEvent; stage: Stage }) {
     [event.dateStart],
   )
 
-  const stageIndex = stage === 'cue' ? 0 : stage === 'reveal' ? 1 : 2
-
   return (
     <header
-      className="flex flex-col gap-4 border-b px-7 pb-5 pt-7 md:px-10"
-      style={{ borderColor: 'rgba(218, 201, 182, 0.7)' }}
+      className="flex flex-col gap-3 border-b px-7 pb-5 pt-7 md:px-10"
+      style={{ borderColor: 'rgba(218, 201, 182, 0.6)' }}
     >
       <div className="flex flex-wrap items-center gap-3">
         <span
-          className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold"
-          style={{ color: categoryMeta.color, background: categoryMeta.background, border: '1px solid rgba(218, 201, 182, 0.7)' }}
+          className="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium"
+          style={{ color: categoryMeta.color, background: categoryMeta.background, border: '1px solid rgba(218, 201, 182, 0.6)' }}
         >
           {categoryMeta.label}
         </span>
@@ -195,14 +196,6 @@ function ModalHeader({ event, stage }: { event: MemoryEvent; stage: Stage }) {
       >
         {event.title}
       </h2>
-
-      {stage !== 'connect' ? (
-        <StepIndicator total={3} current={stageIndex} labels={STAGE_LABELS} />
-      ) : (
-        <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-          Reflection saved — connections nearby
-        </p>
-      )}
     </header>
   )
 }
@@ -211,73 +204,58 @@ function CueStage({
   event,
   value,
   onChange,
-  skipped,
-  onSkipChange,
   onContinue,
 }: {
   event: MemoryEvent
   value: string
   onChange: (v: string) => void
-  skipped: boolean
-  onSkipChange: (v: boolean) => void
   onContinue: () => void
 }) {
-  const cue = event.cues[0]?.text ?? 'What returns first when you think about this event?'
-  const sufficient = value.trim().length >= MIN_RESPONSE_CHARS
+  const cue = event.cues[0]?.text ?? 'What returns first when you think about this?'
 
   return (
     <div className="flex flex-col gap-7">
       <div
-        className="rounded-[28px] border p-6 md:p-8"
+        className="rounded-[28px] border p-7 md:p-9"
         style={{
           background: 'linear-gradient(180deg, #FBF4EA 0%, #F4E8D8 100%)',
-          borderColor: 'rgba(218, 201, 182, 0.8)',
+          borderColor: 'rgba(218, 201, 182, 0.7)',
         }}
       >
         <p
-          className="text-[11px] font-semibold uppercase tracking-[0.24em]"
-          style={{ color: 'var(--amber)' }}
-        >
-          Before the photos
-        </p>
-        <p
-          className="mt-4 text-[22px] leading-9 md:text-[26px] md:leading-10"
+          className="text-[24px] leading-9 md:text-[28px] md:leading-[42px]"
           style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
         >
           {cue}
         </p>
-        {event.cues[1]?.text ? (
-          <p className="mt-4 text-[13px]" style={{ color: 'var(--text-muted)' }}>
-            (And quietly, in the back of your mind: {event.cues[1].text})
-          </p>
-        ) : null}
       </div>
 
-      <ForceInput
+      <textarea
+        rows={5}
         value={value}
-        onChange={onChange}
-        onCantRecall={() => onSkipChange(!skipped)}
-        cantRecall={skipped}
-        placeholder="Write what comes back first — names, a smell, a feeling…"
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Just let it surface…"
+        className="w-full resize-none rounded-[24px] border bg-transparent px-5 py-4 text-[15px] leading-7 outline-none transition-colors"
+        style={{
+          background: 'var(--bg-elevated)',
+          borderColor: 'var(--border)',
+          color: 'var(--text-primary)',
+          minHeight: 152,
+        }}
       />
 
-      <div className="flex items-center justify-between">
-        <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-          The cue tries to surface your memory before the photos do.
-        </p>
+      <div className="flex items-center justify-end">
         <button
           type="button"
           onClick={onContinue}
-          disabled={!skipped && !sufficient}
-          className="rounded-full px-6 py-3 text-[14px] font-semibold transition-all"
+          className="rounded-full px-6 py-3 text-[14px] font-medium transition-all"
           style={{
-            background: !skipped && !sufficient ? 'rgba(60, 42, 30, 0.18)' : 'var(--text-primary)',
+            background: 'var(--text-primary)',
             color: '#FFF8F0',
-            cursor: !skipped && !sufficient ? 'not-allowed' : 'pointer',
-            boxShadow: !skipped && !sufficient ? 'none' : '0 14px 26px rgba(60, 42, 30, 0.18)',
+            boxShadow: '0 14px 26px rgba(60, 42, 30, 0.18)',
           }}
         >
-          Reveal photos →
+          Open
         </button>
       </div>
     </div>
@@ -305,8 +283,11 @@ function RevealStage({
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-        Three photos — chosen as a beginning, a middle, an end of the day.
+      <p
+        className="text-[15px] leading-7"
+        style={{ fontFamily: "'Lora', serif", color: 'var(--text-secondary)', fontStyle: 'italic' }}
+      >
+        Three from this day —
       </p>
 
       <PhotoGrid key={reshuffleStep} photos={selected} animate />
@@ -319,7 +300,7 @@ function RevealStage({
             className="rounded-full px-4 py-2 text-[13px] font-medium"
             style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
           >
-            ← Back to cue
+            Back
           </button>
           {canReshuffle ? (
             <button
@@ -332,7 +313,7 @@ function RevealStage({
                 background: 'rgba(246, 228, 205, 0.6)',
               }}
             >
-              ↻ Show three different ones
+              Other moments
             </button>
           ) : null}
         </div>
@@ -340,14 +321,14 @@ function RevealStage({
         <button
           type="button"
           onClick={onContinue}
-          className="rounded-full px-6 py-3 text-[14px] font-semibold"
+          className="rounded-full px-6 py-3 text-[14px] font-medium"
           style={{
             background: 'var(--text-primary)',
             color: '#FFF8F0',
             boxShadow: '0 14px 26px rgba(60, 42, 30, 0.18)',
           }}
         >
-          Write something →
+          Write something
         </button>
       </div>
     </div>
@@ -357,7 +338,6 @@ function RevealStage({
 function WritebackStage({
   event,
   cueResponse,
-  cueSkipped,
   value,
   onChange,
   onSave,
@@ -365,7 +345,6 @@ function WritebackStage({
 }: {
   event: MemoryEvent
   cueResponse: string
-  cueSkipped: boolean
   value: string
   onChange: (v: string) => void
   onSave: () => void
@@ -376,14 +355,11 @@ function WritebackStage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div
-        className="flex flex-wrap items-center gap-3 rounded-[20px] border px-4 py-3"
-        style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
-      >
+      <div className="flex flex-wrap items-center gap-3">
         {photoStrip.map((photo) => (
           <span
             key={photo.id}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[22px]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl text-[24px]"
             style={{
               background: 'linear-gradient(160deg, #F7EFE4 0%, #EEDFCF 100%)',
               border: '1px solid rgba(218, 201, 182, 0.7)',
@@ -392,38 +368,28 @@ function WritebackStage({
             {photo.url}
           </span>
         ))}
-        <span className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-          You just sat with these.
-        </span>
       </div>
 
-      {!cueSkipped && cueResponse.trim() ? (
+      {cueResponse.trim() ? (
         <div
-          className="rounded-[20px] border-l-4 px-4 py-3"
-          style={{
-            borderColor: 'var(--amber)',
-            background: 'rgba(246, 228, 205, 0.5)',
-            color: 'var(--text-secondary)',
-          }}
+          className="border-l-2 pl-4 py-1"
+          style={{ borderColor: 'rgba(191, 128, 58, 0.5)' }}
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--amber)' }}>
-            What you wrote before
+          <p
+            className="text-[14px] leading-7"
+            style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', color: 'var(--text-secondary)' }}
+          >
+            Earlier you said — “{cueResponse.trim()}”
           </p>
-          <p className="mt-2 text-[14px] leading-7">{cueResponse}</p>
         </div>
       ) : null}
 
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--amber)' }}>
-          Now
-        </p>
-        <p
-          className="mt-3 text-[22px] leading-9 md:text-[24px]"
-          style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
-        >
-          What stays with you, after seeing them again?
-        </p>
-      </div>
+      <p
+        className="text-[22px] leading-9 md:text-[24px]"
+        style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
+      >
+        Anything you want to keep from this?
+      </p>
 
       <textarea
         rows={6}
@@ -446,13 +412,13 @@ function WritebackStage({
           className="rounded-full px-4 py-2 text-[13px] font-medium"
           style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
         >
-          ← Back to photos
+          Back
         </button>
         <button
           type="button"
           onClick={onSave}
           disabled={!canSave}
-          className="rounded-full px-6 py-3 text-[14px] font-semibold"
+          className="rounded-full px-6 py-3 text-[14px] font-medium"
           style={{
             background: canSave ? 'var(--text-primary)' : 'rgba(60, 42, 30, 0.18)',
             color: '#FFF8F0',
@@ -460,7 +426,119 @@ function WritebackStage({
             boxShadow: canSave ? '0 14px 26px rgba(60, 42, 30, 0.18)' : 'none',
           }}
         >
-          Save reflection →
+          Keep this
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ReflectionCard({
+  event,
+  writeback,
+  reshuffleStep,
+  onContinue,
+  onClose,
+}: {
+  event: MemoryEvent
+  writeback: string
+  reshuffleStep: number
+  onContinue: () => void
+  onClose: () => void
+}) {
+  const photos = useMemo(
+    () => pickThreePhotos(event.photos, reshuffleStep),
+    [event.photos, reshuffleStep],
+  )
+  const dateLabel = useMemo(
+    () =>
+      new Date(`${event.dateStart}T12:00:00`).toLocaleDateString('en', {
+        month: 'long',
+        year: 'numeric',
+      }),
+    [event.dateStart],
+  )
+
+  const stackOffsets = [
+    { x: -110, y: -8, rotate: -9 },
+    { x: 0, y: 4, rotate: 1.5 },
+    { x: 110, y: -4, rotate: 8 },
+  ]
+
+  return (
+    <div className="flex flex-col items-center gap-6 py-4">
+      <div className="memory-card-stack relative h-[260px] w-full max-w-[500px]">
+        {photos.map((photo, idx) => {
+          const offset = stackOffsets[idx] ?? stackOffsets[1]
+          return (
+            <div
+              key={photo.id}
+              className="absolute left-1/2 top-1/2 memory-card-polaroid"
+              style={{
+                transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) rotate(${offset.rotate}deg)`,
+                zIndex: idx + 1,
+              }}
+            >
+              <div className="memory-card-polaroid__frame">
+                <span className="memory-card-polaroid__photo">{photo.url}</span>
+              </div>
+              {photo.caption ? (
+                <p className="memory-card-polaroid__caption">{photo.caption}</p>
+              ) : null}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="w-full max-w-[480px] rounded-[28px] border bg-white/95 px-7 py-7 text-center backdrop-blur-md"
+        style={{ borderColor: 'rgba(218, 201, 182, 0.7)', boxShadow: '0 28px 60px rgba(60, 42, 30, 0.22)' }}
+      >
+        <p
+          className="text-[10px] font-medium tracking-[0.32em]"
+          style={{ color: 'var(--text-muted)', textTransform: 'uppercase' }}
+        >
+          {dateLabel}
+        </p>
+        <h3
+          className="mt-3 text-[22px] leading-snug"
+          style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
+        >
+          {event.title}
+        </h3>
+        <p
+          className="mt-5 text-[16px] leading-8"
+          style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)', fontStyle: 'italic' }}
+        >
+          “{writeback.trim()}”
+        </p>
+        <p
+          className="mt-6 text-[10px] font-medium tracking-[0.28em]"
+          style={{ color: 'var(--text-muted)', textTransform: 'uppercase' }}
+        >
+          from your {BRAND}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full px-5 py-3 text-[13px] font-medium"
+          style={{ color: '#fff8f0', background: 'rgba(60, 42, 30, 0.6)', backdropFilter: 'blur(6px)' }}
+        >
+          Done
+        </button>
+        <button
+          type="button"
+          onClick={onContinue}
+          className="rounded-full px-5 py-3 text-[13px] font-medium"
+          style={{
+            background: '#fff8f0',
+            color: 'var(--text-primary)',
+            boxShadow: '0 14px 26px rgba(60, 42, 30, 0.22)',
+          }}
+        >
+          See connections →
         </button>
       </div>
     </div>
@@ -491,26 +569,20 @@ function ConnectStage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em]" style={{ color: 'var(--amber)' }}>
-          What this connects to
-        </p>
-        <p
-          className="mt-3 text-[22px] leading-9"
-          style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
-        >
-          Other moments your archive thinks belong nearby.
-        </p>
-      </div>
+      <p
+        className="text-[22px] leading-9"
+        style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
+      >
+        These felt nearby.
+      </p>
 
       {candidates.length === 0 ? (
         <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>
-          Nothing surfaced this time. Return to the graph and explore.
+          Nothing surfaced this time.
         </p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {candidates.map(({ rel, target }) => {
-            const relMeta = RELATION_META[rel.relation]
             const targetCategory = CATEGORY_META[target.category]
 
             return (
@@ -535,28 +607,17 @@ function ConnectStage({
                   {target.photos[0]?.url ?? target.coverEmoji}
                 </div>
                 <div className="flex flex-1 flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
-                      style={{ color: relMeta.color, background: relMeta.background }}
-                    >
-                      {relMeta.label}
-                    </span>
-                    <span
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                      style={{ color: targetCategory.color, background: targetCategory.background }}
-                    >
-                      {targetCategory.label}
-                    </span>
-                  </div>
+                  <span
+                    className="inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{ color: targetCategory.color, background: targetCategory.background }}
+                  >
+                    {rel.reason}
+                  </span>
                   <p
                     className="text-[16px] leading-snug"
                     style={{ fontFamily: "'Lora', serif", color: 'var(--text-primary)' }}
                   >
                     {target.title}
-                  </p>
-                  <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>
-                    {rel.reason}
                   </p>
                 </div>
               </button>
@@ -569,14 +630,14 @@ function ConnectStage({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full px-5 py-3 text-[14px] font-semibold"
+          className="rounded-full px-5 py-3 text-[14px] font-medium"
           style={{
             background: 'var(--text-primary)',
             color: '#FFF8F0',
             boxShadow: '0 14px 26px rgba(60, 42, 30, 0.18)',
           }}
         >
-          Return to graph
+          Done
         </button>
       </div>
     </div>

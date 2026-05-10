@@ -14,7 +14,6 @@ export default function LayerToggle() {
 
   return (
     <div className="memory-layer-toggle">
-      <span className="memory-layer-toggle__label">Lens</span>
       {LAYERS.map((layer) => {
         const isActive = activeLayer === layer.id
         return (

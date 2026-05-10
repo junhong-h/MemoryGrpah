@@ -166,6 +166,11 @@ export default function EventGraph() {
     <div className="relative w-full h-full">
       <LayerToggle />
 
+      <div className="memory-brand-line">
+        <span className="memory-brand-line__name">Folio</span>
+        <span className="memory-brand-line__sub">{events.length} moments · 2024</span>
+      </div>
+
       <ReactFlow<MemoryGraphNode, Edge>
         nodes={nodes}
         edges={edges}
@@ -196,9 +201,6 @@ export default function EventGraph() {
         <HybridBackdrop events={events} />
       </ReactFlow>
 
-      <div className="memory-help-hint">
-        Hover a node to see its links · Drag to reshape · Click to revisit
-      </div>
     </div>
   )
 }
